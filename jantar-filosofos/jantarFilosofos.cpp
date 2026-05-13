@@ -98,18 +98,25 @@ void* filosofo(void* arg) {
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        printf("Uso: %s <numero_de_filosofos>\n", argv[0]);
+        printf("Inserir quantidade de filosofos: %s <numero_de_filosofos>\n", argv[0]);
         return 1;
     }
 
+//converte quantidade inserida no terminal
     qtdFilosofos = atoi(argv[1]);
+//vetor para estado
     estado = (int*)malloc(qtdFilosofos * sizeof(int));
+//vetor para contador de refeicao
     refeicoes = (int*)malloc(qtdFilosofos * sizeof(int));
+//vetor de semaforo
     semFilosofos = (sem_t*)malloc(qtdFilosofos * sizeof(sem_t));
+//armazena id de cada thread
     pthread_t threads[qtdFilosofos];
+//vetor de ids em valores númericos
     int ids[qtdFilosofos];
-
+//tempo inicial do main para calculo do tmepo no log
     gettimeofday(&tempo, NULL);
+//inicializa mutex
     pthread_mutex_init(&mutex, NULL);
 
     for (int i = 0; i < qtdFilosofos; i++) {
