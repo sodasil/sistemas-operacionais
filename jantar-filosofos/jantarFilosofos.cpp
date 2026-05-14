@@ -102,36 +102,38 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-//converte quantidade inserida no terminal
+    //converte quantidade inserida no terminal
     qtdFilosofos = atoi(argv[1]);
-//vetor para estado
+    //vetor para estado
     estado = (int*)malloc(qtdFilosofos * sizeof(int));
-//vetor para contador de refeicao
+    //vetor para contador de refeicao
     refeicoes = (int*)malloc(qtdFilosofos * sizeof(int));
-//vetor de semaforo
+    //vetor de semaforo
     semFilosofos = (sem_t*)malloc(qtdFilosofos * sizeof(sem_t));
-//armazena id de cada thread
+    //armazena id de cada thread
     pthread_t threads[qtdFilosofos];
-//vetor de ids em valores númericos
+    //vetor de ids em valores númericos
     int ids[qtdFilosofos];
-//tempo inicial do main para calculo do tmepo no log
+    //tempo inicial do main para calculo do tmepo no log
     gettimeofday(&tempo, NULL);
-//inicializa mutex
+    //inicializa mutex
     pthread_mutex_init(&mutex, NULL);
 
     for (int i = 0; i < qtdFilosofos; i++) {
+        //define estado inicial PENSANDO, zera contador e atribui o id
         estado[i] = PENSANDO;
         refeicoes[i] = 0;
         ids[i] = i;
-        sem_init(&semFilosofos[i], 0, 0); // Inicializa semáforos em 0
+        //inicializa semáforo com contador em zero
+        sem_init(&semFilosofos[i], 0, 0); 
     }
 
-    // Criação das threads (Primitiva de SO)
+    //cria threads
     for (int i = 0; i < qtdFilosofos; i++) {
         pthread_create(&threads[i], NULL, filosofo, &ids[i]);
     }
 
-    // Deixa rodar por um tempo determinado (ex: 10 segundos)
+    //roda por 10 segundos
     sleep(10);
 
     printf("\n--- Fim da Simulação ---\n");

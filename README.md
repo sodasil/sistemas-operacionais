@@ -15,18 +15,25 @@ Ferramentas disponíveis: gcc/g++, gdb, valgrind, strace, ltrace, cmake, make.
 
 Procurar uma lista de palavras em um diagrama de letras 
 e indicar se cada palavra foi encontrada ou não. 
+
 Se a palavra foi encontrada, deve ser indicada a posição inicial e o sentido
 (todos os sentidos são válidos).
 
 # jantar-filosofos
 
 Simular N filósofos dispostos em volta de uma mesa circular. Cada 
-filósofo alterna entre três estados: 
+filósofo alterna entre três estados:
+
 `PENSANDO` → `COM_FOME` → `COMENDO` → `PENSANDO` 
+
 Para comer, um filósofo precisa obter os dois garfos adjacentes à sua posição. 
+
 O programa deve rodar por um período de tempo pré-definido e exibir no terminal o estado do 
 sistema e estatísticas de cada filósofo.
 
+- Compilar: `g++ jantarFilosofos.cpp -o jantar -lpthread`
+- Executar: `./jantar <numero_de_filosofos>`
+  
 # barbeiro-dorminhoco
 
 Simular uma barbearia com 1 barbeiro e um número limitado de cadeiras de 
