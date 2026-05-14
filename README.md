@@ -11,14 +11,14 @@ Para consultar documentação de comandos linux:
 Ferramentas disponíveis: gcc/g++, gdb, valgrind, strace, ltrace, cmake, make.
 
 
-# Caca Palavras (caca-palavras)
+# caca-palavras
 
 Procurar uma lista de palavras em um diagrama de letras 
 e indicar se cada palavra foi encontrada ou não. 
 Se a palavra foi encontrada, deve ser indicada a posição inicial e o sentido
 (todos os sentidos são válidos).
 
-# Jantar dos Filosofos (jantar-filosofos)
+# jantar-filosofos
 
 Simular N filósofos dispostos em volta de uma mesa circular. Cada 
 filósofo alterna entre três estados: 
@@ -27,7 +27,7 @@ Para comer, um filósofo precisa obter os dois garfos adjacentes à sua posiçã
 O programa deve rodar por um período de tempo pré-definido e exibir no terminal o estado do 
 sistema e estatísticas de cada filósofo.
 
-# Barbeiro Dorminhoco (barbeiro-dorminhoco)
+# barbeiro-dorminhoco
 
 Simular uma barbearia com 1 barbeiro e um número limitado de cadeiras de 
 espera. Clientes chegam ao longo do tempo de forma contínua e tentam ser 
