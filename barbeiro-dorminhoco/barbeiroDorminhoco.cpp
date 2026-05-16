@@ -10,14 +10,11 @@
 
 using namespace std;
 
-// ===================== ESTRUTURAS GLOBAIS =====================
-
 mutex mtx;
 condition_variable cv_barbeiro;
 
 bool simulacao_ativa = true;
 
-// Fila de espera
 queue<int> fila_clientes;
 
 int cadeiras_totais;
@@ -26,12 +23,8 @@ int clientes_desistentes = 0;
 
 string estado_barbeiro = "DORME";
 
-// Tempo inicial da simulação
 auto inicio_simulacao = chrono::steady_clock::now();
 
-// ===================== FUNÇÕES AUXILIARES =====================
-
-// Timestamp [HH:MM:SS.mmm]
 string timestamp() {
     auto agora = chrono::steady_clock::now();
 
@@ -62,7 +55,6 @@ string timestamp() {
     return string(buffer);
 }
 
-// Mostrar fila graficamente
 string desenhar_fila() {
     string s = "[";
 
@@ -79,22 +71,19 @@ string desenhar_fila() {
 
     return s;
 }
-
-// Mostrar IDs na fila
 string listar_fila() {
     queue<int> copia = fila_clientes;
 
     string s;
 
     while (!copia.empty()) {
-        s += "C" + to_string(copia.front()) + " ";
+        s += to_string(copia.front()) + " ";
         copia.pop();
     }
 
     return s;
 }
 
-// Log completo do sistema
 void log_evento(string evento) {
 
     cout << timestamp() << " " << evento << endl;
@@ -118,8 +107,6 @@ void log_evento(string evento) {
          << endl;
 }
 
-// ===================== THREAD DO BARBEIRO =====================
-
 void barbeiro_func(int tmin, int tmax) {
 
     default_random_engine gerador(
@@ -134,7 +121,6 @@ void barbeiro_func(int tmin, int tmax) {
 
         unique_lock<mutex> lock(mtx);
 
-        // Dorme se não há clientes
         while (fila_clientes.empty() && simulacao_ativa) {
 
             estado_barbeiro = "DORME";
@@ -142,25 +128,21 @@ void barbeiro_func(int tmin, int tmax) {
             cv_barbeiro.wait(lock);
         }
 
-        // Encerrar corretamente
         if (!simulacao_ativa && fila_clientes.empty())
             break;
 
-        // Próximo cliente
         int cliente = fila_clientes.front();
         fila_clientes.pop();
 
         estado_barbeiro =
-            "ATENDE C" + to_string(cliente);
+            "ATENDE " + to_string(cliente);
 
         log_evento(
-            "Barbeiro iniciou atendimento do cliente C"
+            "Barbeiro iniciou atendimento do cliente "
             + to_string(cliente)
         );
 
         lock.unlock();
-
-        // Simula corte
         this_thread::sleep_for(
             chrono::milliseconds(
                 tempo_corte(gerador)
@@ -172,31 +154,26 @@ void barbeiro_func(int tmin, int tmax) {
         clientes_atendidos++;
 
         log_evento(
-            "Barbeiro concluiu atendimento do cliente C"
+            "Barbeiro concluiu atendimento do cliente "
             + to_string(cliente)
         );
     }
 
     estado_barbeiro = "DORME";
 }
-
-// ===================== THREAD DO CLIENTE =====================
-
 void cliente_func(int id_cliente) {
 
     unique_lock<mutex> lock(mtx);
 
-    // Existe cadeira?
     if ((int)fila_clientes.size() < cadeiras_totais) {
 
         fila_clientes.push(id_cliente);
 
         log_evento(
-            "Cliente C" + to_string(id_cliente)
+            "Cliente " + to_string(id_cliente)
             + " chegou e entrou na fila"
         );
 
-        // Acorda barbeiro
         cv_barbeiro.notify_one();
     }
     else {
@@ -204,13 +181,11 @@ void cliente_func(int id_cliente) {
         clientes_desistentes++;
 
         log_evento(
-            "Cliente C" + to_string(id_cliente)
+            "Cliente " + to_string(id_cliente)
             + " chegou, mas desistiu por falta de cadeira"
         );
     }
 }
-
-// ===================== MAIN =====================
 
 int main() {
 
@@ -240,7 +215,6 @@ int main() {
     cout << "Simulacao iniciada..." << endl;
     cout << endl;
 
-    // Thread barbeiro
     thread barbeiro(
         barbeiro_func,
         corte_min,
@@ -261,8 +235,6 @@ int main() {
     auto inicio = chrono::steady_clock::now();
 
     int id_cliente = 1;
-
-    // Gerador contínuo de clientes
     while (
         chrono::duration_cast<chrono::seconds>(
             chrono::steady_clock::now() - inicio
@@ -280,21 +252,16 @@ int main() {
         );
     }
 
-    // Finalização
     simulacao_ativa = false;
 
     cv_barbeiro.notify_all();
 
-    // Espera clientes
     for (auto &t : clientes) {
         if (t.joinable())
             t.join();
     }
 
-    // Espera barbeiro
     barbeiro.join();
-
-    // ===================== RESUMO FINAL =====================
 
     cout << endl;
     cout << "=========== RESUMO FINAL ===========" << endl;
