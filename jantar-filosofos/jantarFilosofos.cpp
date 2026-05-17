@@ -30,16 +30,39 @@ struct timeval tempo;
 void mostraStatus(int id, const char *evento) {
     struct timeval tempoAtual;
     gettimeofday(&tempoAtual, NULL);
-    
     long segundos = tempoAtual.tv_sec - tempo.tv_sec;
     long milisegundos = (tempoAtual.tv_usec - tempo.tv_usec) / 1000;
     if (milisegundos < 0) { segundos--; milisegundos += 1000; }
-
     int hh = segundos / 3600;
     int mm = (segundos % 3600) / 60;
     int ss = segundos % 60;
-
-    printf("[%02d:%02d:%02d.%03ld] Filósofo %d %s\n", hh, mm, ss, milisegundos, id, evento);
+    printf("[%02d:%02d:%02d.%03ld] F%d %s\n", hh, mm, ss, milisegundos, id, evento);
+    printf("Garfos: ");
+    for (int i = 0; i < qtdFilosofos; i++) {
+        int vizinho_direita = (i + 1) % qtdFilosofos;
+        if (estado[i] == COMENDO || estado[vizinho_direita] == COMENDO) {
+            printf("[X]");
+        } else {
+            printf("[O]");
+        }
+    }
+    printf("\n");
+    printf("Filósofos: ");
+    for (int i = 0; i < qtdFilosofos; i++) {
+        printf("F%d:", i);
+        if (estado[i] == PENSANDO) printf("PENS");
+        else if (estado[i] == FAMINTO) printf("FOME");
+        else if (estado[i] == COMENDO) printf("COME");
+        
+        if (i < qtdFilosofos - 1) printf(" | ");
+    }
+    printf("\n");
+    printf("Refeições: ");
+    for (int i = 0; i < qtdFilosofos; i++) {
+        printf("F%d:%d", i, refeicoes[i]);
+        if (i < qtdFilosofos - 1) printf(" | ");
+    }
+    printf("\n------------------------------------------------------------\n");
 }
 
 void testar(int id) {
