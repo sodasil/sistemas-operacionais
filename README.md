@@ -42,4 +42,4 @@ atendidos. Se não houver clientes, o barbeiro dorme. Se a sala de espera
 estiver cheia, clientes que chegam vão embora.
 
 - Compilar: `g++ barbeiro.cpp -o barbearia -lpthread`
-- Executar: `./barbearia>`
+- Executar: `./barbearia`
