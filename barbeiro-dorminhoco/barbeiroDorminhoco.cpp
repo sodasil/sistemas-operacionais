@@ -1,23 +1,31 @@
 #include <iostream>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
 #include <chrono>
 #include <queue>
 #include <vector>
 #include <random>
-#include <iomanip>
 
 using namespace std;
 
-mutex mtx;
-condition_variable cv_barbeiro;
+
+struct Cliente {
+    int id;
+    string estado;
+};
+
+// Mutex para proteger região crítica
+pthread_mutex_t mutex_fila;
+// Semaforo para controlar o atendimento de clientes
+sem_t sem_clientes;
+
+queue<Cliente> fila_clientes;
 
 bool simulacao_ativa = true;
 
-queue<int> fila_clientes;
-
 int cadeiras_totais;
+
 int clientes_atendidos = 0;
 int clientes_desistentes = 0;
 
@@ -25,12 +33,15 @@ string estado_barbeiro = "DORME";
 
 auto inicio_simulacao = chrono::steady_clock::now();
 
+
 string timestamp() {
+
     auto agora = chrono::steady_clock::now();
 
     auto tempo =
         chrono::duration_cast<chrono::milliseconds>(
-            agora - inicio_simulacao).count();
+            agora - inicio_simulacao
+        ).count();
 
     int horas = tempo / 3600000;
     tempo %= 3600000;
@@ -45,7 +56,7 @@ string timestamp() {
 
     sprintf(
         buffer,
-        "[%02d:%02d:%02d.%03lld]",
+        "[%02d:%02d:%02d.%03ld]",
         horas,
         minutos,
         segundos,
@@ -56,11 +67,13 @@ string timestamp() {
 }
 
 string desenhar_fila() {
+
     string s = "[";
 
     int ocupadas = fila_clientes.size();
 
     for (int i = 0; i < cadeiras_totais; i++) {
+
         if (i < ocupadas)
             s += "#";
         else
@@ -71,13 +84,20 @@ string desenhar_fila() {
 
     return s;
 }
+
 string listar_fila() {
-    queue<int> copia = fila_clientes;
+
+    queue<Cliente> copia = fila_clientes;
 
     string s;
 
     while (!copia.empty()) {
-        s += to_string(copia.front()) + " ";
+
+        Cliente c = copia.front();
+
+        s += to_string(c.id)
+           + ":" + c.estado + " ";
+
         copia.pop();
     }
 
@@ -86,28 +106,49 @@ string listar_fila() {
 
 void log_evento(string evento) {
 
-    cout << timestamp() << " " << evento << endl;
+    cout << timestamp()
+         << " "
+         << evento
+         << endl;
 
-    cout << "Barbeiro: " << estado_barbeiro << endl;
+    cout << "Barbeiro: "
+         << estado_barbeiro
+         << endl;
 
     cout << "Fila: "
          << desenhar_fila()
-         << " (" << fila_clientes.size()
-         << "/" << cadeiras_totais << ") -> "
+         << " ("
+         << fila_clientes.size()
+         << "/"
+         << cadeiras_totais
+         << ") -> "
          << listar_fila()
          << endl;
 
     cout << "Contadores: "
-         << "atendidos=" << clientes_atendidos
-         << " | desistentes=" << clientes_desistentes
-         << " | em_espera=" << fila_clientes.size()
+         << "atendidos="
+         << clientes_atendidos
+         << " | desistentes="
+         << clientes_desistentes
+         << " | em_espera="
+         << fila_clientes.size()
          << endl;
 
     cout << "------------------------------------------------------------"
          << endl;
 }
 
-void barbeiro_func(int tmin, int tmax) {
+//Thread do barbeiro
+struct ParametrosBarbeiro {
+
+    int tempo_min;
+    int tempo_max;
+};
+
+void* barbeiro_func(void* arg) {
+
+    ParametrosBarbeiro* p =
+        (ParametrosBarbeiro*) arg;
 
     default_random_engine gerador(
         chrono::system_clock::now()
@@ -115,77 +156,130 @@ void barbeiro_func(int tmin, int tmax) {
         .count()
     );
 
-    uniform_int_distribution<int> tempo_corte(tmin, tmax);
+    uniform_int_distribution<int>
+        tempo_corte(
+            p->tempo_min,
+            p->tempo_max
+        );
 
     while (simulacao_ativa || !fila_clientes.empty()) {
 
-        unique_lock<mutex> lock(mtx);
+        estado_barbeiro = "DORME";
 
-        while (fila_clientes.empty() && simulacao_ativa) {
+        // Fica a espera de clientes
+        sem_wait(&sem_clientes);
 
-            estado_barbeiro = "DORME";
+        pthread_mutex_lock(&mutex_fila);
 
-            cv_barbeiro.wait(lock);
+        if (!simulacao_ativa &&
+            fila_clientes.empty()) {
+
+            pthread_mutex_unlock(&mutex_fila);
+
+            break;
         }
 
-        if (!simulacao_ativa && fila_clientes.empty())
-            break;
+        if (fila_clientes.empty()) {
 
-        int cliente = fila_clientes.front();
+            pthread_mutex_unlock(&mutex_fila);
+
+            continue;
+        }
+
+        Cliente cliente =
+            fila_clientes.front();
+
         fila_clientes.pop();
 
         estado_barbeiro =
-            "ATENDE " + to_string(cliente);
+            "ATENDE";
+        cliente.estado = "ATENDIDO";
 
         log_evento(
-            "Barbeiro iniciou atendimento do cliente "
-            + to_string(cliente)
+            "Cliente "
+            + to_string(cliente.id)
+            + ": AGUARDA -> ATENDIDO"
         );
 
-        lock.unlock();
-        this_thread::sleep_for(
-            chrono::milliseconds(
-                tempo_corte(gerador)
-            )
+        pthread_mutex_unlock(&mutex_fila);
+
+        // Simula atendimento
+        usleep(
+            tempo_corte(gerador) * 1000
         );
 
-        lock.lock();
+        pthread_mutex_lock(&mutex_fila);
 
         clientes_atendidos++;
 
         log_evento(
-            "Barbeiro concluiu atendimento do cliente "
-            + to_string(cliente)
+            "Cliente "
+            + to_string(cliente.id)
+            + " foi atendido"
         );
+
+        pthread_mutex_unlock(&mutex_fila);
     }
 
-    estado_barbeiro = "DORME";
+    pthread_exit(NULL);
 }
-void cliente_func(int id_cliente) {
 
-    unique_lock<mutex> lock(mtx);
+// Thread do cliente
+void* cliente_func(void* arg) {
 
-    if ((int)fila_clientes.size() < cadeiras_totais) {
+    int id_cliente = *((int*) arg);
 
-        fila_clientes.push(id_cliente);
+    delete (int*) arg;
+
+    pthread_mutex_lock(&mutex_fila);
+
+    Cliente cliente;
+
+    cliente.id = id_cliente;
+    cliente.estado = "ENTRA";
+
+    log_evento(
+        "Cliente "
+        + to_string(cliente.id)
+        + ": ENTRA"
+    );
+
+    // Verifica se existe espaço na fila
+    if ((int)fila_clientes.size()
+        < cadeiras_totais) {
+
+        //Caso tenha espaço na fila
+        cliente.estado = "AGUARDA";
+
+        fila_clientes.push(cliente);
 
         log_evento(
-            "Cliente " + to_string(id_cliente)
-            + " chegou e entrou na fila"
+            "Cliente "
+            + to_string(cliente.id)
+            + ": ENTRA -> AGUARDA"
         );
 
-        cv_barbeiro.notify_one();
+        // Alerta o barbeiro
+        sem_post(&sem_clientes);
     }
     else {
 
+        //Caso não tenha
+        cliente.estado = "DESISTE";
         clientes_desistentes++;
-
         log_evento(
-            "Cliente " + to_string(id_cliente)
-            + " chegou, mas desistiu por falta de cadeira"
+            "Cliente "
+            + to_string(cliente.id)
+            + ": ENTRA -> DESISTE"
         );
     }
+
+    pthread_mutex_unlock(&mutex_fila);
+
+    pthread_exit(NULL);
 }
+
+//Main
 
 int main() {
 
@@ -215,13 +309,35 @@ int main() {
     cout << "Simulacao iniciada..." << endl;
     cout << endl;
 
-    thread barbeiro(
-        barbeiro_func,
-        corte_min,
-        corte_max
+    // Inicializa mutex
+    pthread_mutex_init(
+        &mutex_fila,
+        NULL
     );
 
-    vector<thread> clientes;
+    // Inicializa semáforo
+    sem_init(
+        &sem_clientes,
+        0,
+        0
+    );
+
+    ParametrosBarbeiro params;
+
+    params.tempo_min = corte_min;
+    params.tempo_max = corte_max;
+
+    // Cria a thread do Barbeiro
+    pthread_t barbeiro;
+
+    pthread_create(
+        &barbeiro,
+        NULL,
+        barbeiro_func,
+        &params
+    );
+
+    vector<pthread_t> clientes;
 
     default_random_engine gerador(
         chrono::system_clock::now()
@@ -230,50 +346,75 @@ int main() {
     );
 
     uniform_int_distribution<int>
-        tempo_chegada(chegada_min, chegada_max);
+        tempo_chegada(
+            chegada_min,
+            chegada_max
+        );
 
     auto inicio = chrono::steady_clock::now();
 
     int id_cliente = 1;
+
+    // Gera clientes até o fim da simulação
     while (
+
         chrono::duration_cast<chrono::seconds>(
-            chrono::steady_clock::now() - inicio
+            chrono::steady_clock::now()
+            - inicio
         ).count() < duracao
+
     ) {
 
-        this_thread::sleep_for(
-            chrono::milliseconds(
-                tempo_chegada(gerador)
-            )
+        usleep(
+            tempo_chegada(gerador) * 1000
         );
-
-        clientes.push_back(
-            thread(cliente_func, id_cliente++)
+        pthread_t cliente;
+        int* id = new int(id_cliente++);
+        pthread_create(
+            &cliente,
+            NULL,
+            cliente_func,
+            id
         );
+        clientes.push_back(cliente);
     }
 
+    // Encerra simulação
     simulacao_ativa = false;
 
-    cv_barbeiro.notify_all();
+    // Acorda barbeiro caso esteja dormindo para evitar espera infinita
+    sem_post(&sem_clientes);
 
-    for (auto &t : clientes) {
-        if (t.joinable())
-            t.join();
+    // Espera clientes finalizarem para dar continuidade ao codigo no main
+    for (pthread_t& t : clientes) {
+
+        pthread_join(t, NULL);
     }
 
-    barbeiro.join();
+    // Espera barbeiro finalizar para dar continuidade ao codigo do main
+    pthread_join(barbeiro, NULL);
 
+    // Libera recursos
+    pthread_mutex_destroy(&mutex_fila);
+
+    sem_destroy(&sem_clientes);
+
+    //Relatório Final
     cout << endl;
+
     cout << "=========== RESUMO FINAL ===========" << endl;
 
     cout << "Clientes atendidos: "
-         << clientes_atendidos << endl;
+         << clientes_atendidos
+         << endl;
 
     cout << "Clientes desistentes: "
-         << clientes_desistentes << endl;
+         << clientes_desistentes
+         << endl;
 
     cout << "Clientes restantes na fila: "
-         << fila_clientes.size() << endl;
+         << fila_clientes.size()
+         << endl;
 
     return 0;
 }
