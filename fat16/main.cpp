@@ -592,8 +592,108 @@ bool deleteFile(const string& filename) {
     return true;
 }
 
-};
+string decodeDate(uint16_t fatDate)
+{
+    int day   = fatDate & 0x1F;
+    int month = (fatDate >> 5) & 0x0F;
+    int year  = ((fatDate >> 9) & 0x7F) + 1980;
 
+    char buffer[20];
+
+    sprintf(
+        buffer,
+        "%02d/%02d/%04d",
+        day,
+        month,
+        year
+    );
+
+    return string(buffer);
+}
+
+string decodeTime(uint16_t fatTime)
+{
+    int seconds = (fatTime & 0x1F) * 2;
+    int minutes = (fatTime >> 5) & 0x3F;
+    int hours   = (fatTime >> 11) & 0x1F;
+
+    char buffer[20];
+
+    sprintf(
+        buffer,
+        "%02d:%02d:%02d",
+        hours,
+        minutes,
+        seconds
+    );
+
+    return string(buffer);
+}
+string decodeAttributes(uint8_t attr)
+{
+    string result;
+
+    if (attr & 0x01) result += "READ_ONLY ";
+    if (attr & 0x02) result += "HIDDEN ";
+    if (attr & 0x04) result += "SYSTEM ";
+    if (attr & 0x08) result += "VOLUME ";
+    if (attr & 0x10) result += "DIRECTORY ";
+    if (attr & 0x20) result += "ARCHIVE ";
+
+    return result;
+}
+void showFileInfo(const string& filename)
+{
+    DirectoryEntry entry;
+
+    if (!findFile(filename, entry))
+    {
+        cout << "Arquivo nao encontrado.\n";
+        return;
+    }
+
+    string name(entry.filename, 8);
+    string ext(entry.extension, 3);
+
+    while (!name.empty() && name.back() == ' ')
+        name.pop_back();
+
+    while (!ext.empty() && ext.back() == ' ')
+        ext.pop_back();
+
+    cout << "\n===== INFORMACOES DO ARQUIVO =====\n\n";
+
+    cout << "Nome: "
+         << name;
+
+    if (!ext.empty())
+        cout << "." << ext;
+
+    cout << endl;
+
+    cout << "Tamanho: "
+         << entry.fileSize
+         << " bytes\n";
+
+    cout << "Primeiro Cluster: "
+         << entry.firstCluster
+         << endl;
+
+    cout << "Atributos: "
+         << decodeAttributes(entry.attributes)
+         << endl;
+
+    cout << "Data da ultima modificacao: "
+         << decodeDate(entry.date)
+         << endl;
+
+    cout << "Hora da ultima modificacao: "
+         << decodeTime(entry.time)
+         << endl;
+
+    cout << "\n=================================\n";
+}
+};
 
 /// MAIN 
 int main() {
@@ -632,12 +732,16 @@ int main() {
 
         case 2:
 
-            if (fat.isOpen())
-                fat.printInfo();
-            else
-                cout << "Abra uma imagem primeiro.\n";
+{
+            string nome;
 
-            break;
+            cout << "Nome do arquivo: ";
+            cin >> nome;
+
+            fat.showFileInfo(nome);
+
+         break;
+}
 
         case 3:
 
