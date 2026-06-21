@@ -391,9 +391,7 @@ bool renameFile(const string& oldName, const string& newName) {
 
 bool createFile(const string& filename, const string& content) {
 
-    // =========================
-    // 1. Converter nome FAT16
-    // =========================
+
     string base = filename;
     string ext = "";
 
@@ -416,9 +414,6 @@ bool createFile(const string& filename, const string& content) {
     for (size_t i = 0; i < min((size_t)3, ext.size()); i++)
         fatExt[i] = toupper(ext[i]);
 
-    // =========================
-    // 2. Encontrar cluster livre
-    // =========================
     uint16_t freeCluster = 0;
 
     uint32_t fatOffset = bs.reservedSectors * bs.bytesPerSector;
@@ -441,17 +436,12 @@ bool createFile(const string& filename, const string& content) {
         return false;
     }
 
-    // =========================
-    // 3. Marcar cluster como EOF
-    // =========================
+
     uint16_t eof = 0xFFFF;
 
     image.seekp(fatOffset + freeCluster * 2);
     image.write(reinterpret_cast<char*>(&eof), 2);
 
-    // =========================
-    // 4. Encontrar entrada livre no diretório raiz
-    // =========================
     uint32_t rootDirSector =
         bs.reservedSectors +
         (bs.numFATs * bs.fatSize16);
@@ -485,9 +475,7 @@ bool createFile(const string& filename, const string& content) {
         return false;
     }
 
-    // =========================
-    // 5. Criar entrada
-    // =========================
+
     memset(&entry, 0, sizeof(entry));
 
     memcpy(entry.filename, fatName, 8);
@@ -497,15 +485,11 @@ bool createFile(const string& filename, const string& content) {
     entry.firstCluster = freeCluster;
     entry.fileSize = content.size();
 
-    // =========================
-    // 6. Escrever entrada
-    // =========================
+
     image.seekp(entryPos);
     image.write(reinterpret_cast<char*>(&entry), sizeof(entry));
 
-    // =========================
-    // 7. Escrever conteúdo no cluster
-    // =========================
+
     uint32_t dataOffset =
         clusterToOffset(freeCluster);
 
@@ -520,9 +504,7 @@ bool createFile(const string& filename, const string& content) {
 
 bool deleteFile(const string& filename) {
 
-    // =========================
-    // 1. Procurar arquivo no diretório raiz
-    // =========================
+
     uint32_t rootDirSector =
         bs.reservedSectors +
         (bs.numFATs * bs.fatSize16);
@@ -552,7 +534,7 @@ bool deleteFile(const string& filename) {
         if (entry.attributes == 0x0F)
             continue;
 
-        // Monta nome
+
         string name(entry.filename, 8);
         string ext(entry.extension, 3);
 
@@ -576,9 +558,7 @@ bool deleteFile(const string& filename) {
         return false;
     }
 
-    // =========================
-    // 2. Liberar clusters na FAT
-    // =========================
+
     uint16_t cluster = entry.firstCluster;
 
     uint32_t fatOffset =
@@ -600,9 +580,7 @@ bool deleteFile(const string& filename) {
         cluster = next;
     }
 
-    // =========================
-    // 3. Marcar entrada como deletada
-    // =========================
+   
     char deleted = (char)0xE5;
 
     image.seekp(entryPos);
