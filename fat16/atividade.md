@@ -1,3 +1,31 @@
+RELATORIO_ESTUDO.md (12 seções)
+
+Relatório completo e detalhado do projeto
+Estruturas de dados, layout FAT16, todas as 7 operações
+Detalhes técnicos e perguntas frequentes
+ROTEIRO_APRESENTACAO.md (7 partes)
+
+Roteiro estruturado para apresentação ao professor (15-20 min)
+Exemplos práticos, demonstração ao vivo
+Respostas prontas para perguntas comuns
+PERGUNTAS_TECNICAS.md (3 níveis)
+
+Perguntas fundamentais (obrigatório dominar)
+Perguntas intermediárias (muito importante)
+Perguntas avançadas (para impressionar)
+Desafios práticos e testes rápidos
+GUIA_ESTUDO.md (Índice + Planejamento)
+
+Guia completo de estudo com cronograma
+Plano de 2 horas de preparação
+Checklist pré-apresentação
+Dicas e ordem de leitura recomendada
+DIAGRAMAS_VISUAIS.md (Referência rápida)
+
+Diagramas ASCII do layout FAT16
+Tabelas de valores e formatos
+Fluxogramas das operações
+Resumo de 1 página
 Implementação de Funções de Manipulação de Sistema de Arquivos FAT16 (grupo de até 03 alunos)
 Objetivo:
 Neste trabalho vocês deverão desenvolver um programa em linguagem C/C++ para manipular um sistema de
